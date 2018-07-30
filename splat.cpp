@@ -7849,24 +7849,25 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"       -N do not produce unnecessary site or obstruction reports\n");	
 		fprintf(stdout,"       -f frequency for Fresnel zone calculation (MHz)\n");
 		fprintf(stdout,"       -R modify default range for -c or -L (miles/kilometers)\n");
-		fprintf(stdout,"      -sc display smooth rather than quantized contour levels (uber default)\n");
+		fprintf(stdout,"      -sc display smooth rather than quantized contour levels\n");
 		fprintf(stdout,"      -db threshold beyond which contours will not be displayed\n");
 		fprintf(stdout,"      -nf do not plot Fresnel zones in height plots\n");
 		fprintf(stdout,"      -fz Fresnel zone clearance percentage (default = 60)\n");
 		fprintf(stdout,"      -gc ground clutter height (feet/meters)\n");
-		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files (uber default)\n"); 	
+		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files\n"); 	
 		fprintf(stdout,"     -erp override ERP in .lrp file (Watts)\n");
 		fprintf(stdout,"     -ano name of alphanumeric output file\n");
 		fprintf(stdout,"     -ani name of alphanumeric input file\n");
 		fprintf(stdout,"     -udt name of user defined terrain input file\n");
-		fprintf(stdout,"     -kml generate Google Earth (.kml) compatible output (uber default)\n");
+		fprintf(stdout,"     -kml generate Google Earth (.kml) compatible output\n");
 		fprintf(stdout,"     -geo generate an Xastir .geo georeference file (with .ppm output)\n");
-		fprintf(stdout,"     -dbm plot signal power level contours rather than field strength (uber default)\n");
+		fprintf(stdout,"     -dbm plot signal power level contours rather than field strength\n");
 		fprintf(stdout,"     -log copy command line string to this output file\n");
 		fprintf(stdout,"   -gpsav preserve gnuplot temporary working files after SPLAT! execution\n");
-		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O (uber default)\n");
-		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the newer ITWOM model (uber default)\n\n");
-		fprintf(stdout,"  -cutsea output a second ppm with suffix -cutsea with no data over the sea (uber default)\n\n");
+		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O\n");
+		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the newer ITWOM model\n\n");
+		fprintf(stdout,"  -cutsea output a second ppm with suffix -cutsea with no data over the sea\n\n");
+		fprintf(stdout,"    -UBER enable UBER's default profile (metric, olditem, cutsea, kml, ngs, sc, dbm, db=110)\n\n");
 
 		y=(int)sqrt((int)MAXPAGES);
 
@@ -7917,15 +7918,6 @@ int main(int argc, char *argv[])
 	cutsea=0;
 	earthradius=EARTHRADIUS;
 
-	/* UBER DEFAULTS */
-	dbm=1;
-	kml=1;
-	metric=1;
-	ngs=1;
-	olditm=1;
-	smooth_contours=1;
-	cutsea=1;
-
 	ippd=IPPD;		/* pixels per degree (integer) */
 	ppd=(double)ippd;	/* pixels per degree (double)  */
 	dpp=1.0/ppd;		/* degrees per pixel */
@@ -7953,6 +7945,17 @@ int main(int argc, char *argv[])
 
 	for (x=1; x<=y; x++)
 	{
+		if (strcmp(argv[x],"-UBER")==0)
+		{
+			dbm=1;
+			kml=1;
+			metric=1;
+			ngs=1;
+			olditm=1;
+			smooth_contours=1;
+			cutsea=1;
+		}
+
 		if (strcmp(argv[x],"-R")==0)
 		{
 			z=x+1;
