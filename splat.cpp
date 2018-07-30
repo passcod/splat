@@ -7810,10 +7810,10 @@ int main(int argc, char *argv[])
 {
 	int		x, y, z=0, min_lat, min_lon, max_lat, max_lon,
 			rxlat, rxlon, txlat, txlon, west_min, west_max,
-			north_min, north_max;
+			north_min, north_max, cutoff=0;
 
 	unsigned char	coverage=0, LRmap=0, terrain_plot=0,
-			elevation_plot=0, height_plot=0, map=0, cutsea=0, cutoff=0,
+			elevation_plot=0, height_plot=0, map=0, cutsea=0,
 			longley_plot=0, cities=0, bfs=0, txsites=0,
 			norm=0, topomap=0, geo=0, kml=0, pt2pt_mode=0,
 			area_mode=0, max_txsites, ngs=0, nolospath=0,
@@ -7885,9 +7885,9 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O\n");
 		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the newer ITWOM model\n\n");
 		fprintf(stdout,"  -cutsea output another ppm with suffix -cutsea with no data over the sea\n\n");
-		fprintf(stdout,"  -cutoff output another ppm with suffix -cutoff with no data under -110dB\n\n");
+		fprintf(stdout,"  -cutoff output another ppm with suffix -cutoff with no data under -N dB\n\n");
 		fprintf(stdout,"          if both -cutsea and -cutoff are given, the -cutoff view will also be -cutsea'd\n\n");
-		fprintf(stdout,"    -UBER enable UBER's default profile (metric, olditem, cutsea, cutoff, kml, ngs, sc, dbm)\n\n");
+		fprintf(stdout,"    -UBER enable UBER's default profile (metric, olditem, cutsea, cutoff=110, kml, ngs, sc, dbm)\n\n");
 
 		y=(int)sqrt((int)MAXPAGES);
 
@@ -7975,7 +7975,7 @@ int main(int argc, char *argv[])
 			olditm=1;
 			smooth_contours=1;
 			cutsea=1;
-			cutoff=1;
+			cutoff=110;
 		}
 
 		if (strcmp(argv[x],"-R")==0)
@@ -7991,7 +7991,7 @@ int main(int argc, char *argv[])
 
 				if (max_range>1000.0)
 					max_range=1000.0;
-			}			 
+			}
 		}
 
 		if (strcmp(argv[x],"-m")==0)
@@ -8164,9 +8164,14 @@ int main(int argc, char *argv[])
 
 		if (strcmp(argv[x],"-cutsea")==0)
 			cutsea=1;
-
+		
 		if (strcmp(argv[x],"-cutoff")==0)
-			cutoff=1;
+		{
+			z=x+1;
+
+			if (z<=y && argv[z][0]) /* A minus argument is legal here */
+				sscanf(argv[z],"%d",&cutoff);
+		}
 
 		if (strcmp(argv[x],"-N")==0)
 		{
@@ -8871,7 +8876,7 @@ int main(int argc, char *argv[])
 					}
 
 					if (cutoff) {
-						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,cutsea,110);
+						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,cutsea,cutoff);
 					}
 				} else {
 					WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
