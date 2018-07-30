@@ -5147,7 +5147,7 @@ void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned c
 	fflush(stdout);
 }
 
-void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites, unsigned char cutsea)
+void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites, unsigned char cutsea, int cutoff)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on the signal power level values held in the
@@ -5210,7 +5210,20 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 	kmlfile[x+3]='l';
 	kmlfile[x+4]=0;
 	
-	if (cutsea) {
+	if (cutoff) {
+		mapfile[x]='-';
+		mapfile[x+1]='c';
+		mapfile[x+2]='u';
+		mapfile[x+3]='t';
+		mapfile[x+4]='o';
+		mapfile[x+5]='f';
+		mapfile[x+6]='f';
+		mapfile[x+7]='.';
+		mapfile[x+8]='p';
+		mapfile[x+9]='p';
+		mapfile[x+10]='m';
+		mapfile[x+11]=0;
+	} else if (cutsea) {
 		mapfile[x]='-';
 		mapfile[x+1]='c';
 		mapfile[x+2]='u';
@@ -5388,7 +5401,7 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 				red=0;
 				green=0;
 				blue=0;
-
+				
 				if (dBm>=region.level[0])
 					match=0;
 				else if (cutsea && data < 1)
@@ -5400,6 +5413,11 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 						if (dBm<region.level[z-1] && dBm>=region.level[z])
 							match=z;
 					}
+				}
+
+				if (cutoff && dBm != -200 && dBm < -cutoff) {
+					dBm=-200;
+					match=0;
 				}
 
 				if (match<region.levels)
@@ -7795,7 +7813,7 @@ int main(int argc, char *argv[])
 			north_min, north_max;
 
 	unsigned char	coverage=0, LRmap=0, terrain_plot=0,
-			elevation_plot=0, height_plot=0, map=0, cutsea=0,
+			elevation_plot=0, height_plot=0, map=0, cutsea=0, cutoff=0,
 			longley_plot=0, cities=0, bfs=0, txsites=0,
 			norm=0, topomap=0, geo=0, kml=0, pt2pt_mode=0,
 			area_mode=0, max_txsites, ngs=0, nolospath=0,
@@ -7866,8 +7884,10 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"   -gpsav preserve gnuplot temporary working files after SPLAT! execution\n");
 		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O\n");
 		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the newer ITWOM model\n\n");
-		fprintf(stdout,"  -cutsea output a second ppm with suffix -cutsea with no data over the sea\n\n");
-		fprintf(stdout,"    -UBER enable UBER's default profile (metric, olditem, cutsea, kml, ngs, sc, dbm, db=110)\n\n");
+		fprintf(stdout,"  -cutsea output another ppm with suffix -cutsea with no data over the sea\n\n");
+		fprintf(stdout,"  -cutoff output another ppm with suffix -cutoff with no data under -110dB\n\n");
+		fprintf(stdout,"          if both -cutsea and -cutoff are given, the -cutoff view will also be -cutsea'd\n\n");
+		fprintf(stdout,"    -UBER enable UBER's default profile (metric, olditem, cutsea, cutoff, kml, ngs, sc, dbm)\n\n");
 
 		y=(int)sqrt((int)MAXPAGES);
 
@@ -7916,6 +7936,7 @@ int main(int argc, char *argv[])
 	ani_filename[0]=0;
 	smooth_contours=0;
 	cutsea=0;
+	cutoff=0;
 	earthradius=EARTHRADIUS;
 
 	ippd=IPPD;		/* pixels per degree (integer) */
@@ -7954,6 +7975,7 @@ int main(int argc, char *argv[])
 			olditm=1;
 			smooth_contours=1;
 			cutsea=1;
+			cutoff=1;
 		}
 
 		if (strcmp(argv[x],"-R")==0)
@@ -8142,6 +8164,9 @@ int main(int argc, char *argv[])
 
 		if (strcmp(argv[x],"-cutsea")==0)
 			cutsea=1;
+
+		if (strcmp(argv[x],"-cutoff")==0)
+			cutoff=1;
 
 		if (strcmp(argv[x],"-N")==0)
 		{
@@ -8427,7 +8452,7 @@ int main(int argc, char *argv[])
 		else
 		{
 		       	if (dbm)
-				WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0);
+				WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0,0);
 			else
 				WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
 		}
@@ -8839,10 +8864,14 @@ int main(int argc, char *argv[])
 				WritePPMLR(mapfile,geo,kml,ngs,tx_site,txsites);
 			} else {
 				if (dbm) {
-					WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0);
+					WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0,0);
 
 					if (cutsea) {
-						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,1);
+						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,1,0);
+					}
+
+					if (cutoff) {
+						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,cutsea,110);
 					}
 				} else {
 					WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
