@@ -8780,16 +8780,13 @@ int main(int argc, char *argv[])
 
 	if (area_mode && topomap==0)
 	{
-		fprintf(stderr,"\n Area mode ??? \n");
 		for (x=0; x<txsites && x<max_txsites; x++)
 		{
 			if (coverage) {
-				fprintf(stderr,"\n coverage \n");
 				PlotLOSMap(tx_site[x],altitude);
 			}
 
 			else if (ReadLRParm(tx_site[x],1)) {
-				fprintf(stderr,"\n not coverage \n");
 				PlotLRMap(tx_site[x],altitudeLR,ano_filename);
 			}
 
@@ -8799,7 +8796,6 @@ int main(int argc, char *argv[])
 
 	if (map || topomap)
 	{
-		fprintf(stderr,"\n plotting \n");
 		/* Label the map */
 
 		if (kml==0)
@@ -8830,28 +8826,22 @@ int main(int argc, char *argv[])
 		}
 
 		/* Plot the map */
-		fprintf(stderr,"\n plotting ? \n");
 
 		if (coverage || pt2pt_mode || topomap) {
-			fprintf(stderr,"\n plotting PPM \n");
 			WritePPM(mapfile,geo,kml,ngs,tx_site,txsites);
 		}
 		else
 		{
 			if (LR.erp==0.0) {
-				fprintf(stderr,"\n plotting PPMLR \n");
 				WritePPMLR(mapfile,geo,kml,ngs,tx_site,txsites);
 			} else {
 				if (dbm) {
-					fprintf(stderr,"\n plotting PPMDBM \n");
 					WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0);
 
 					if (cutsea) {
-						fprintf(stderr,"\n plotting Cutsea \n");
 						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,1);
 					}
 				} else {
-					fprintf(stderr,"\n plotting PPMSS \n");
 					WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
 				}
 			}
