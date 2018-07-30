@@ -5147,7 +5147,7 @@ void WritePPMSS(char *filename, unsigned char geo, unsigned char kml, unsigned c
 	fflush(stdout);
 }
 
-void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites)
+void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned char ngs, struct site *xmtr, unsigned char txsites, unsigned char cutsea)
 {
 	/* This function generates a topographic map in Portable Pix Map
 	   (PPM) format based on the signal power level values held in the
@@ -5158,6 +5158,7 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 	char mapfile[255], geofile[255], kmlfile[255], ckfile[255];
 	unsigned width, height, terrain, red, green, blue;
 	unsigned char found, mask, cityorcounty;
+	short data;
 	int indx, x, y, z=1, x0, y0, dBm, level, hundreds,
 	    tens, units, match, colorwidth;
 	double conversion, one_over_gamma, lat, lon,
@@ -5197,21 +5198,38 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 		ckfile[x]=filename[x];
 	}
 
-	mapfile[x]='.';
 	geofile[x]='.';
-	kmlfile[x]='.';
-	mapfile[x+1]='p';
 	geofile[x+1]='g';
-	kmlfile[x+1]='k';
-	mapfile[x+2]='p';
 	geofile[x+2]='e';
-	kmlfile[x+2]='m';
-	mapfile[x+3]='m';
 	geofile[x+3]='o';
-	kmlfile[x+3]='l';
-	mapfile[x+4]=0;
 	geofile[x+4]=0;
+	
+	kmlfile[x]='.';
+	kmlfile[x+1]='k';
+	kmlfile[x+2]='m';
+	kmlfile[x+3]='l';
 	kmlfile[x+4]=0;
+	
+	if (cutsea) {
+		mapfile[x]='-';
+		mapfile[x+1]='c';
+		mapfile[x+2]='u';
+		mapfile[x+3]='t';
+		mapfile[x+4]='s';
+		mapfile[x+5]='e';
+		mapfile[x+6]='a';
+		mapfile[x+7]='.';
+		mapfile[x+8]='p';
+		mapfile[x+9]='p';
+		mapfile[x+10]='m';
+		mapfile[x+11]=0;
+	} else {
+		mapfile[x]='.';
+		mapfile[x+1]='p';
+		mapfile[x+2]='p';
+		mapfile[x+3]='m';
+		mapfile[x+4]=0;
+	}
 
 	ckfile[x]='-';
 	ckfile[x+1]='c';
@@ -5360,10 +5378,11 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 
 			if (found)
 			{
+				data=dem[indx].data[x0][y0];
 				mask=dem[indx].mask[x0][y0];
 				dBm=(dem[indx].signal[x0][y0])-200;
 				cityorcounty=0;
-
+				
 				match=255;
 
 				red=0;
@@ -5371,6 +5390,8 @@ void WritePPMDBM(char *filename, unsigned char geo, unsigned char kml, unsigned 
 				blue=0;
 
 				if (dBm>=region.level[0])
+					match=0;
+				else if (cutsea && data < 1)
 					match=0;
 				else
 				{
@@ -7774,7 +7795,7 @@ int main(int argc, char *argv[])
 			north_min, north_max;
 
 	unsigned char	coverage=0, LRmap=0, terrain_plot=0,
-			elevation_plot=0, height_plot=0, map=0,
+			elevation_plot=0, height_plot=0, map=0, cutsea=0,
 			longley_plot=0, cities=0, bfs=0, txsites=0,
 			norm=0, topomap=0, geo=0, kml=0, pt2pt_mode=0,
 			area_mode=0, max_txsites, ngs=0, nolospath=0,
@@ -7828,31 +7849,24 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"       -N do not produce unnecessary site or obstruction reports\n");	
 		fprintf(stdout,"       -f frequency for Fresnel zone calculation (MHz)\n");
 		fprintf(stdout,"       -R modify default range for -c or -L (miles/kilometers)\n");
-		fprintf(stdout,"      -sc display smooth rather than quantized contour levels\n");
+		fprintf(stdout,"      -sc display smooth rather than quantized contour levels (uber default)\n");
 		fprintf(stdout,"      -db threshold beyond which contours will not be displayed\n");
 		fprintf(stdout,"      -nf do not plot Fresnel zones in height plots\n");
 		fprintf(stdout,"      -fz Fresnel zone clearance percentage (default = 60)\n");
 		fprintf(stdout,"      -gc ground clutter height (feet/meters)\n");
-		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files\n"); 	
+		fprintf(stdout,"     -ngs display greyscale topography as white in .ppm files (uber default)\n"); 	
 		fprintf(stdout,"     -erp override ERP in .lrp file (Watts)\n");
 		fprintf(stdout,"     -ano name of alphanumeric output file\n");
 		fprintf(stdout,"     -ani name of alphanumeric input file\n");
 		fprintf(stdout,"     -udt name of user defined terrain input file\n");
-		fprintf(stdout,"     -kml generate Google Earth (.kml) compatible output\n");
+		fprintf(stdout,"     -kml generate Google Earth (.kml) compatible output (uber default)\n");
 		fprintf(stdout,"     -geo generate an Xastir .geo georeference file (with .ppm output)\n");
-		fprintf(stdout,"     -dbm plot signal power level contours rather than field strength\n");
+		fprintf(stdout,"     -dbm plot signal power level contours rather than field strength (uber default)\n");
 		fprintf(stdout,"     -log copy command line string to this output file\n");
 		fprintf(stdout,"   -gpsav preserve gnuplot temporary working files after SPLAT! execution\n");
-		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O\n");
-		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the default ITWOM model\n\n");
-		fprintf(stdout,"If that flew by too fast, consider piping the output through 'less':\n");
-
-		if (HD_MODE==0)
-			fprintf(stdout,"\n\tsplat | less\n\n");
-		else
-			fprintf(stdout,"\n\tsplat-hd | less\n\n");
-
-		fprintf(stdout,"Type 'man splat', or see the documentation for more details.\n\n");
+		fprintf(stdout,"  -metric employ metric rather than imperial units for all user I/O (uber default)\n");
+		fprintf(stdout,"  -olditm invoke Longley-Rice rather than the newer ITWOM model (uber default)\n\n");
+		fprintf(stdout,"  -cutsea output a second ppm with suffix -cutsea with no data over the sea (uber default)\n\n");
 
 		y=(int)sqrt((int)MAXPAGES);
 
@@ -7875,6 +7889,7 @@ int main(int argc, char *argv[])
 	olditm=0;
 	kml=0;
 	geo=0;
+	ngs=0;
 	dbm=0;
 	gpsav=0;
 	metric=0;
@@ -7899,7 +7914,17 @@ int main(int argc, char *argv[])
 	ano_filename[0]=0;
 	ani_filename[0]=0;
 	smooth_contours=0;
+	cutsea=0;
 	earthradius=EARTHRADIUS;
+
+	/* UBER DEFAULTS */
+	dbm=1;
+	kml=1;
+	metric=1;
+	ngs=1;
+	olditm=1;
+	smooth_contours=1;
+	cutsea=1;
 
 	ippd=IPPD;		/* pixels per degree (integer) */
 	ppd=(double)ippd;	/* pixels per degree (double)  */
@@ -8111,6 +8136,9 @@ int main(int argc, char *argv[])
 
 		if (strcmp(argv[x],"-olditm")==0)
 			olditm=1;
+
+		if (strcmp(argv[x],"-cutsea")==0)
+			cutsea=1;
 
 		if (strcmp(argv[x],"-N")==0)
 		{
@@ -8396,7 +8424,7 @@ int main(int argc, char *argv[])
 		else
 		{
 		       	if (dbm)
-				WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites);
+				WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0);
 			else
 				WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
 		}
@@ -8752,13 +8780,18 @@ int main(int argc, char *argv[])
 
 	if (area_mode && topomap==0)
 	{
+		fprintf(stderr,"\n Area mode ??? \n");
 		for (x=0; x<txsites && x<max_txsites; x++)
 		{
-			if (coverage)
+			if (coverage) {
+				fprintf(stderr,"\n coverage \n");
 				PlotLOSMap(tx_site[x],altitude);
+			}
 
-			else if (ReadLRParm(tx_site[x],1))
-					PlotLRMap(tx_site[x],altitudeLR,ano_filename);
+			else if (ReadLRParm(tx_site[x],1)) {
+				fprintf(stderr,"\n not coverage \n");
+				PlotLRMap(tx_site[x],altitudeLR,ano_filename);
+			}
 
 			SiteReport(tx_site[x]);
 		}
@@ -8766,6 +8799,7 @@ int main(int argc, char *argv[])
 
 	if (map || topomap)
 	{
+		fprintf(stderr,"\n plotting \n");
 		/* Label the map */
 
 		if (kml==0)
@@ -8796,19 +8830,31 @@ int main(int argc, char *argv[])
 		}
 
 		/* Plot the map */
+		fprintf(stderr,"\n plotting ? \n");
 
-		if (coverage || pt2pt_mode || topomap)
+		if (coverage || pt2pt_mode || topomap) {
+			fprintf(stderr,"\n plotting PPM \n");
 			WritePPM(mapfile,geo,kml,ngs,tx_site,txsites);
-
+		}
 		else
 		{
-			if (LR.erp==0.0)
+			if (LR.erp==0.0) {
+				fprintf(stderr,"\n plotting PPMLR \n");
 				WritePPMLR(mapfile,geo,kml,ngs,tx_site,txsites);
-			else
-				if (dbm)
-					WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites);
-				else
+			} else {
+				if (dbm) {
+					fprintf(stderr,"\n plotting PPMDBM \n");
+					WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,0);
+
+					if (cutsea) {
+						fprintf(stderr,"\n plotting Cutsea \n");
+						WritePPMDBM(mapfile,geo,kml,ngs,tx_site,txsites,1);
+					}
+				} else {
+					fprintf(stderr,"\n plotting PPMSS \n");
 					WritePPMSS(mapfile,geo,kml,ngs,tx_site,txsites);
+				}
+			}
 		}
 	}
 
